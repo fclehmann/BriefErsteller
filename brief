@@ -1,0 +1,198 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use Data::Dumper;
+
+my $require_file = $ENV{"HOME"}.'/.briefkoepfe.pl';
+
+my %daten = (
+
+);
+
+if(-e $require_file) {
+	eval `cat $require_file`;
+}
+
+main();
+
+sub main {
+	print <<EOF;
+Brief-Skript v. 3.00.
+
+Dieses Skript soll helfen, automatisiert Briefköpfe zu erstellen. Dazu müssen einige Fragen beantwortet werden.
+
+Einmal eingegebene Daten werden gespeichert und stehen bei späteren Aufrufen zur Verfügung.
+
+EOF
+	my ($name, %this_daten) = get_daten(1);
+
+	my ($sender_name, %sender_daten) = get_daten(0);
+
+	print "Betreff: ";
+	my $betreff = do_read();
+
+	print "Dateiname (.tex wird automatisch hinzugefügt): ";
+	my $dateiname = do_read().'.tex';
+
+	my $calligraphy_name = $sender_daten{calligraphy_name};
+
+	if($dateiname ne '.tex') {
+		create_letter(betreff => $betreff, dateiname => $dateiname, empfaenger_daten => \%this_daten, sender_daten => \%sender_daten, name => $name, sender_name => $sender_name, calligraphy_name => $calligraphy_name);
+	} else {
+		die "Bitte einen richtigen Dateinamen eingeben!";
+	}
+}
+
+sub get_daten {
+	my $is_empfaenger = shift;
+
+	if($is_empfaenger) {
+		print "Empfänger: \n";
+	} else {
+		print "Sender: \n";
+	}
+
+	print "Name: ";
+	my $name = do_read();
+
+	my %this_daten = ();
+
+	if(exists($daten{$name})) {
+		%this_daten = %{$daten{$name}};
+	} else {
+		my @fields = qw/firma strasse plz stadt email anrede gruesse/;
+		for (@fields) {
+			print ucfirst($_).": ";
+			my $data = do_read();
+			$this_daten{$_} = $data if defined $data;
+		}
+
+		print "Die Daten waren dem Skript nicht bekannt. Sie werden nun in die ~/.briefkoepfe.pl geschrieben und stehen bei späteren Aufrufen zur Verfügung.\n";
+
+		my $dumper = Dumper \%this_daten;
+
+		my $name_dumper = $name;
+		$name_dumper =~ s#"#\\"#g;
+		$dumper =~ s#^\$VAR1 = #\$daten{"$name_dumper"} = #;
+
+		open my $fh, '>>', $require_file or die $!;
+		print $fh $dumper;
+		close $fh;
+	}
+
+	return ($name, %this_daten);
+}
+
+sub do_read {
+	my $str = <>;
+	chomp $str;
+	return $str;
+}
+
+sub create_letter {
+	my %par = @_;
+
+	my $letter = <<EOF
+\\documentclass{g-brief2}
+\\usepackage{ngerman}
+\\usepackage[utf8x]{inputenc}
+\\usepackage[T1]{fontenc}
+\\usepackage{fourier}
+\\usepackage{marvosym}
+\\usepackage{aurical}
+
+\\IhrSchreiben{}
+\\MeinZeichen{}
+
+EOF
+;
+
+	my %sender_daten = %{$par{sender_daten}};
+	my %empfaenger_daten = %{$par{empfaenger_daten}};
+
+	my $empfaenger_adresse = $par{name};
+	if(exists($empfaenger_daten{firma}) && $par{name} ne $empfaenger_daten{firma}) {
+		$empfaenger_adresse .= "\\\\$empfaenger_daten{firma}";
+	}
+
+	if(exists($empfaenger_daten{strasse})) {
+		$empfaenger_adresse .= "\\\\$empfaenger_daten{strasse}";
+	}
+
+	if(exists($empfaenger_daten{plz}) && exists($empfaenger_daten{stadt})) {
+		$empfaenger_adresse .= "\\\\$empfaenger_daten{plz} $empfaenger_daten{stadt}";
+	}
+
+	add_to_letter(\$letter, "Adresse", $empfaenger_adresse);
+	add_to_letter(\$letter, "Gruss", $empfaenger_daten{gruesse}, "{0cm}");
+	add_to_letter(\$letter, "Anrede", $empfaenger_daten{anrede});
+	add_to_letter(\$letter, "Betreff", $par{betreff});
+	add_to_letter(\$letter, "AdressZeileA", $par{sender_name});
+	add_to_letter(\$letter, "AdressZeileB", $sender_daten{strasse});
+	add_to_letter(\$letter, "AdressZeileC", $sender_daten{plz}.' '.$sender_daten{stadt});
+
+	my $retour_adress = $par{sender_name}.', '.$sender_daten{strasse}.', '.$sender_daten{plz}.' '.$sender_daten{stadt};
+
+	add_to_letter(\$letter, "RetourAdresse", $retour_adress);
+
+	if($par{calligraphy_name}) {
+		add_to_letter(\$letter, "Name", $par{calligraphy_name});
+	} else {
+		add_to_letter(\$letter, "Name", $par{sender_name});
+	}
+	add_to_letter(\$letter, "Unterschrift", $par{sender_name});
+
+	if(exists($sender_daten{email})) {
+		add_to_letter(\$letter, "InternetZeileA", $sender_daten{email});
+	}
+
+	my $adress_zeile = 'A';
+	if(exists($sender_daten{telefon})) {
+		add_to_letter(\$letter, "TelefonZeile$adress_zeile", "\\Telefon{$sender_daten{telefon}}");
+		$adress_zeile++;
+	}
+
+	if(exists($sender_daten{telex})) {
+		add_to_letter(\$letter, "TelefonZeile$adress_zeile", "\\Faxmachine $sender_daten{telex}");
+		$adress_zeile++;
+	}
+
+
+	$letter .= <<EOF
+\\trennlinien
+\\lochermarke
+\\faltmarken
+\\fenstermarken
+
+\\addtolength{\\topmargin}{0.95cm}
+
+\\begin{document}
+\\begin{g-brief}
+
+%
+% Hier kommt der eigentliche Brief hin!
+%
+
+\\end{g-brief}
+\\end{document}
+EOF
+;
+
+	open my $fh, '>', $par{dateiname} or die $!;
+	print $fh $letter;
+	close $fh or die $!;
+
+	print "Brief erfolgreich erzeugt.\n";
+}
+
+sub add_to_letter {
+	my $letter = shift;
+	my $command_name = shift;
+	my $value = shift // '';
+	my $after_command = shift;
+
+	no warnings;
+	${$letter} .= "\\$command_name\{$value\}$after_command\n";
+	use warnings;
+}
