@@ -17,3 +17,7 @@ zu packen, um es überall aufrufen zu können. Die .tex-Datei wird immer im aktu
 > sudo cpan -i UI::Dialog
 
 > sudo aptitude install whiptail
+
+# Video
+
+https://www.youtube.com/watch?v=kP5sorq1hFU&feature=youtu.be
