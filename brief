@@ -82,7 +82,7 @@ sub get_daten {
 	if(exists($daten{$name})) {
 		%this_daten = %{$daten{$name}};
 	} else {
-		my @fields = qw/firma strasse plz stadt email anrede gruesse/;
+		my @fields = qw/firma strasse plz stadt email telefon anrede gruesse/;
 		for (@fields) {
 			my $data = do_read(ucfirst($_));
 			$this_daten{$_} = $data if defined $data;
@@ -128,7 +128,6 @@ sub create_letter {
 \\usepackage[T1]{fontenc}
 \\usepackage{fourier}
 \\usepackage{marvosym}
-\\usepackage{aurical}
 
 \\IhrSchreiben{}
 \\MeinZeichen{}
