@@ -25,7 +25,7 @@ main();
 
 sub main {
 	print <<EOF;
-Brief-Skript v. 4.00.
+Brief-Skript v. 4.01.
 
 Dieses Skript soll helfen, automatisiert Briefköpfe zu erstellen. Dazu müssen einige Fragen beantwortet werden.
 
@@ -152,24 +152,89 @@ EOF
 	$empfaenger_adresse =~ s#(?:\\\\){2,}#\\\\#;
 	$empfaenger_adresse =~ s#(?:\\\s*){1,}$##g;
 
-	add_to_letter(\$letter, "Adresse", $empfaenger_adresse);
-	add_to_letter(\$letter, "Gruss", $empfaenger_daten{gruesse}, "{0cm}");
-	add_to_letter(\$letter, "Anrede", $empfaenger_daten{anrede});
-	add_to_letter(\$letter, "Betreff", $par{betreff});
-	add_to_letter(\$letter, "AdressZeileA", $par{sender_name});
-	add_to_letter(\$letter, "AdressZeileB", $sender_daten{strasse});
-	add_to_letter(\$letter, "AdressZeileC", $sender_daten{plz}.' '.$sender_daten{stadt});
+	foreach my $anrede_gruesse (qw/andrede gruesse/) {
+		if($empfaenger_daten{$anrede_gruesse}) {
+			$empfaenger_daten{$anrede_gruesse} =~ s#,$##g;
+			$empfaenger_daten{$anrede_gruesse} .= ",";
+		}
+	}
 
-	my $retour_adress = $par{sender_name}.', '.$sender_daten{strasse}.', '.$sender_daten{plz}.' '.$sender_daten{stadt};
+	if($empfaenger_adresse) {
+		add_to_letter(\$letter, "Adresse", $empfaenger_adresse);
+	} else {
+		print color("red")."Keine Empfaenger-Adresse eingegeben!".color("reset")."\n";
+	}
 
-	add_to_letter(\$letter, "RetourAdresse", $retour_adress);
+	if($empfaenger_daten{gruesse}) {
+		add_to_letter(\$letter, "Gruss", $empfaenger_daten{gruesse}, "{0cm}");
+	}
+
+	if($empfaenger_daten{anrede}) {
+		add_to_letter(\$letter, "Anrede", $empfaenger_daten{anrede});
+	}
+
+	if($par{betreff}) {
+		add_to_letter(\$letter, "Betreff", $par{betreff});
+	}
+
+	if($par{sender_name}) {
+		add_to_letter(\$letter, "AdressZeileA", $par{sender_name});
+	}
+
+	if($sender_daten{strasse}) {
+		add_to_letter(\$letter, "AdressZeileB", $sender_daten{strasse});
+	}
+
+	if($sender_daten{plz} && $sender_daten{stadt}) {
+		add_to_letter(\$letter, "AdressZeileC", $sender_daten{plz}.' '.$sender_daten{stadt});
+	} elsif ($sender_daten{plz} && !$sender_daten{stadt}) {
+		add_to_letter(\$letter, "AdressZeileC", $sender_daten{plz});
+	} elsif (!$sender_daten{plz} && $sender_daten{stadt}) {
+		add_to_letter(\$letter, "AdressZeileC", $sender_daten{stadt});
+	}
+
+	if($par{sender_name} || $sender_daten{strasse} || $sender_daten{plz} || $sender_daten{stadt}) {
+		my $retour_adress = '';
+		if($par{sender_name}) {
+			$retour_adress .= $par{sender_name};
+		}
+
+		if($sender_daten{strasse}) {
+			if($retour_adress) {
+				$retour_adress .= ", ";
+			}
+			$retour_adress .= $sender_daten{strasse};
+		}
+
+		if($sender_daten{plz} && $sender_daten{stadt}) {
+			if($retour_adress) {
+				$retour_adress .= ", ";
+			}
+			$retour_adress .= $sender_daten{plz}.' '.$sender_daten{stadt};
+		} elsif ($sender_daten{plz} && !$sender_daten{stadt}) {
+			if($retour_adress) {
+				$retour_adress .= ", ";
+			}
+			$retour_adress .= $sender_daten{plz};
+		} elsif (!$sender_daten{plz} && $sender_daten{stadt}) {
+			if($retour_adress) {
+				$retour_adress .= ", ";
+			}
+			$retour_adress .= $sender_daten{stadt};
+		}
+
+		add_to_letter(\$letter, "RetourAdresse", $retour_adress);
+	}
 
 	if($par{calligraphy_name}) {
 		add_to_letter(\$letter, "Name", $par{calligraphy_name});
 	} else {
 		add_to_letter(\$letter, "Name", $par{sender_name});
 	}
-	add_to_letter(\$letter, "Unterschrift", $par{sender_name});
+
+	if($par{sender_name}) {
+		add_to_letter(\$letter, "Unterschrift", $par{sender_name});
+	}
 
 	if(exists($sender_daten{email})) {
 		add_to_letter(\$letter, "InternetZeileA", $sender_daten{email});
@@ -180,12 +245,6 @@ EOF
 		add_to_letter(\$letter, "TelefonZeile$adress_zeile", "\\Telefon{$sender_daten{telefon}}");
 		$adress_zeile++;
 	}
-
-	if(exists($sender_daten{telex})) {
-		add_to_letter(\$letter, "TelefonZeile$adress_zeile", "\\Faxmachine $sender_daten{telex}");
-		$adress_zeile++;
-	}
-
 
 	$letter .= <<EOF
 \\trennlinien
