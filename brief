@@ -35,6 +35,10 @@ EOF
 
 	my ($name, %this_daten) = get_daten("Empfaenger");
 
+	if(-e $require_file) {
+		eval `cat $require_file`;
+	}
+
 	my ($sender_name, %sender_daten) = get_daten("Sender");
 
 	my $betreff = '';
@@ -54,10 +58,8 @@ EOF
 	$dateiname =~ s#\.tex$##g;
 	$dateiname .= '.tex';
 
-	my $calligraphy_name = $sender_daten{calligraphy_name};
-
 	if($dateiname ne '.tex') {
-		create_letter(betreff => $betreff, dateiname => $dateiname, empfaenger_daten => \%this_daten, sender_daten => \%sender_daten, name => $name, sender_name => $sender_name, calligraphy_name => $calligraphy_name);
+		create_letter(betreff => $betreff, dateiname => $dateiname, empfaenger_daten => \%this_daten, sender_daten => \%sender_daten, name => $name, sender_name => $sender_name);
 		my $filename_without_tex = $dateiname;
 		$filename_without_tex =~ s#\.tex$##g;
 		print "\n\n".color("green underline")."latexmk -pdf $dateiname && evince $filename_without_tex.pdf".color("reset")."\n";
@@ -226,9 +228,7 @@ EOF
 		add_to_letter(\$letter, "RetourAdresse", $retour_adress);
 	}
 
-	if($par{calligraphy_name}) {
-		add_to_letter(\$letter, "Name", $par{calligraphy_name});
-	} else {
+	if($par{sender_name}) {
 		add_to_letter(\$letter, "Name", $par{sender_name});
 	}
 
