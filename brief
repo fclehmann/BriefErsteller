@@ -3,11 +3,18 @@
 use strict;
 use warnings;
 use Data::Dumper;
+use Term::ANSIColor;
+use UI::Dialog;
+
+my $d = new UI::Dialog ( backtitle => '', title => 'Briefersteller',
+	height => 8, width => 65 , listheight => 5,
+	order => [ 'whiptail', 'xdialog', 'dialog', 'zenity', 'gdialog', 'ascii' ] );
 
 my $require_file = $ENV{"HOME"}.'/.briefkoepfe.pl';
+my %options = ();
+analyze_args(@ARGV);
 
 my %daten = (
-
 );
 
 if(-e $require_file) {
@@ -18,43 +25,55 @@ main();
 
 sub main {
 	print <<EOF;
-Brief-Skript v. 3.00.
+Brief-Skript v. 4.00.
 
 Dieses Skript soll helfen, automatisiert Briefköpfe zu erstellen. Dazu müssen einige Fragen beantwortet werden.
 
 Einmal eingegebene Daten werden gespeichert und stehen bei späteren Aufrufen zur Verfügung.
 
 EOF
-	my ($name, %this_daten) = get_daten(1);
 
-	my ($sender_name, %sender_daten) = get_daten(0);
+	my ($name, %this_daten) = get_daten("Empfaenger");
 
-	print "Betreff: ";
-	my $betreff = do_read();
+	my ($sender_name, %sender_daten) = get_daten("Sender");
 
-	print "Dateiname (.tex wird automatisch hinzugefügt): ";
-	my $dateiname = do_read().'.tex';
+	my $betreff = '';
+	if($options{Betreff}) {
+		$betreff = $options{Betreff};
+	} else {
+		$betreff = do_read("Betreff");
+	}
+
+	my $dateiname = '';
+	if($options{Dateiname}) {
+		$dateiname = $options{Dateiname};
+	} else {
+		$dateiname = do_read("Dateiname (.tex wird automatisch hinzugefügt)");
+	}
+
+	$dateiname =~ s#\.tex$##g;
+	$dateiname .= '.tex';
 
 	my $calligraphy_name = $sender_daten{calligraphy_name};
 
 	if($dateiname ne '.tex') {
 		create_letter(betreff => $betreff, dateiname => $dateiname, empfaenger_daten => \%this_daten, sender_daten => \%sender_daten, name => $name, sender_name => $sender_name, calligraphy_name => $calligraphy_name);
+		my $filename_without_tex = $dateiname;
+		$filename_without_tex =~ s#\.tex$##g;
+		print "\n\n".color("green underline")."latexmk -pdf $dateiname && evince $filename_without_tex.pdf".color("reset")."\n";
 	} else {
-		die "Bitte einen richtigen Dateinamen eingeben!";
+		die color("red")."Bitte einen richtigen Dateinamen eingeben!".color("reset");
 	}
 }
 
 sub get_daten {
-	my $is_empfaenger = shift;
-
-	if($is_empfaenger) {
-		print "Empfänger: \n";
+	my $title = shift;
+	my $name = '';
+	if($options{$title}) {
+		$name = $options{$title};
 	} else {
-		print "Sender: \n";
+		$name = do_read($title);
 	}
-
-	print "Name: ";
-	my $name = do_read();
 
 	my %this_daten = ();
 
@@ -63,12 +82,11 @@ sub get_daten {
 	} else {
 		my @fields = qw/firma strasse plz stadt email anrede gruesse/;
 		for (@fields) {
-			print ucfirst($_).": ";
-			my $data = do_read();
+			my $data = do_read(ucfirst($_));
 			$this_daten{$_} = $data if defined $data;
 		}
 
-		print "Die Daten waren dem Skript nicht bekannt. Sie werden nun in die ~/.briefkoepfe.pl geschrieben und stehen bei späteren Aufrufen zur Verfügung.\n";
+		print color("yellow")."Die Daten waren dem Skript nicht bekannt. Sie werden nun in die ~/.briefkoepfe.pl geschrieben und stehen bei späteren Aufrufen zur Verfügung.".color("reset")."\n";
 
 		my $dumper = Dumper \%this_daten;
 
@@ -85,9 +103,17 @@ sub get_daten {
 }
 
 sub do_read {
-	my $str = <>;
-	chomp $str;
-	return $str;
+	my $name = shift;
+	my $str = $d->inputbox(
+		text => "$name: ",
+		entry => '' 
+	);
+	if ($d->state() eq "OK") {
+		chomp $str;
+		return $str;
+	} else {
+		die(color("red")."Error: ".$d->state().color("reset"));
+	}
 }
 
 sub create_letter {
@@ -104,9 +130,8 @@ sub create_letter {
 
 \\IhrSchreiben{}
 \\MeinZeichen{}
-
 EOF
-;
+	;
 
 	my %sender_daten = %{$par{sender_daten}};
 	my %empfaenger_daten = %{$par{empfaenger_daten}};
@@ -123,6 +148,9 @@ EOF
 	if(exists($empfaenger_daten{plz}) && exists($empfaenger_daten{stadt})) {
 		$empfaenger_adresse .= "\\\\$empfaenger_daten{plz} $empfaenger_daten{stadt}";
 	}
+
+	$empfaenger_adresse =~ s#(?:\\\\){2,}#\\\\#;
+	$empfaenger_adresse =~ s#(?:\\\s*){1,}$##g;
 
 	add_to_letter(\$letter, "Adresse", $empfaenger_adresse);
 	add_to_letter(\$letter, "Gruss", $empfaenger_daten{gruesse}, "{0cm}");
@@ -183,7 +211,7 @@ EOF
 	print $fh $letter;
 	close $fh or die $!;
 
-	print "Brief erfolgreich erzeugt.\n";
+	print color("green")."Brief erfolgreich erzeugt.".color("reset")."\n";
 }
 
 sub add_to_letter {
@@ -195,4 +223,36 @@ sub add_to_letter {
 	no warnings;
 	${$letter} .= "\\$command_name\{$value\}$after_command\n";
 	use warnings;
+}
+
+sub _help {
+	my $error = shift // 0;
+	print <<EOF;
+--help                                  Diese Hilfe
+--Empfaenger="Name"                     Empfängernamen
+--Sender="Name"                         Sendername
+--Betreff="Betreff"                     Betreff
+--Dateiname="filename"                  Dateiname ohne .tex
+EOF
+	;
+	exit($error);
+}
+
+sub analyze_args {
+	foreach (@_) {
+		if(m#^--help$#i) {
+			_help();
+		} elsif(m#^--dateiname=(.*)$#i) {
+			$options{Dateiname} = $1;
+		} elsif(m#^--empfaenger=(.*)$#i) {
+			$options{Empfaenger} = $1;
+		} elsif(m#^--sender=(.*)$#i) {
+			$options{Sender} = $1;
+		} elsif(m#^--betreff=(.*)$#i) {
+			$options{Betreff} = $1;
+		} else {
+			print color("red")."Unknown parameter $_".color("reset")."\n";
+			_help(1);
+		}
+	}
 }
