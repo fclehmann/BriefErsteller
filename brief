@@ -61,7 +61,7 @@ sub msgbox ($) {
 my $require_file = $ENV{"HOME"}.'/.briefkoepfe.pl';
 my %options = (
 	edit => undef,
-	compileandopen => undef,
+	compileandopen => 1,
 	automove => 0
 );
 analyze_args(@ARGV);
