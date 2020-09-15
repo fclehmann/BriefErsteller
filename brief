@@ -11,7 +11,7 @@ my $name_and_version;
 my $d;
 
 BEGIN {
-	$name_and_version = "Briefersteller v. 4.20";
+	$name_and_version = "Briefersteller v. 4.22";
 
 	$d = new UI::Dialog(
 		backtitle => '',
@@ -62,7 +62,8 @@ my $require_file = $ENV{"HOME"}.'/.briefkoepfe.pl';
 my %options = (
 	edit => undef,
 	compileandopen => 1,
-	automove => 0
+	automove => 0,
+	dontask => 0
 );
 analyze_args(@ARGV);
 
@@ -157,19 +158,30 @@ EOF
 		$filename_without_tex =~ s#\.tex$##g;
 		my $compile_and_run = "latexmk -pdf $dateiname && xdg-open $filename_without_tex.pdf";
 
-		my @whattodo = $d->checklist(
-			text => 'Was soll ich noch tun?',
-			list => [
-				$ENV{EDITOR}, [ "Ganzen Brief nochmal in $ENV{EDITOR} oeffnen", !!$options{edit} ],
-				'compile', [ 'Brief kompilieren und öffnen', !!$options{compileandopen} ]
-			]
-		);
+		my @whattodo = ();
+		if($options{dontask}) {
+			if($options{edit}) {
+				push @whattodo, $ENV{EDITOR};
+			}
+
+			if($options{compileandopen}) {
+				push @whattodo, 'compileandopen';
+			}
+		} else {
+			push @whattodo, $d->checklist(
+				text => 'Was soll ich noch tun?',
+				list => [
+					$ENV{EDITOR}, [ "Ganzen Brief nochmal in $ENV{EDITOR} oeffnen", !!$options{edit} ],
+					'compileandopen', [ 'Brief kompilieren und öffnen', !!$options{compileandopen} ]
+				]
+			);
+		}
 
 		if (grep($ENV{EDITOR} eq $_, @whattodo)) {
 			system("$ENV{EDITOR} $dateiname")
 		}
 
-		if (grep('compile' eq $_, @whattodo)) {
+		if (grep('compileandopen' eq $_, @whattodo)) {
 			system($compile_and_run);
 		}
 
@@ -426,6 +438,7 @@ $name_and_version
 --compileandopen			Startet direkt einen Kompilierungsvorgang und öffnet die entstandene PDF
 --nocompileandopen			Startet keinen Kompilierungsvorgang und fragt auch nicht danach
 --automove				Automatisches Verschieben ohne Nachfrage
+--dontask				Frage nicht was noch zu tun ist, sondern handle laut Defaults/Parametern
 EOF
 	;
 	exit($error);
@@ -453,6 +466,8 @@ sub analyze_args {
 			$options{compileandopen} = 0;
 		} elsif(m#^--automove#i) {
 			$options{automove} = 1;
+		} elsif(m#^--dontask#i) {
+			$options{dontask} = 1;
 		} else {
 			error "Unknown parameter $_";
 			_help(1);
