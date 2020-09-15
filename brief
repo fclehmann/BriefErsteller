@@ -111,7 +111,25 @@ EOF
 		$ihrzeichen = $options{IhrZeichen};
 	} else {
 		my $ihrzeichen_default = find_IhrZeichen();
-		$ihrzeichen = do_read("Ihr Zeichen", $ihrzeichen_default);
+		if(ref $ihrzeichen_default) {
+			if(scalar @$ihrzeichen_default == 1) {
+				$ihrzeichen_default = $ihrzeichen_default->[0];
+			} else {
+				my @list = ();
+				my $k = 0;
+				foreach my $zeichen (@$ihrzeichen_default) {
+					push @list, ($zeichen => [$zeichen => (($k == 0) ? 1 : 0)]);
+					$k++;
+				}
+				$ihrzeichen = $d->radiolist(
+					text => 'Mögliche Auswahlen für "Ihr Zeichen": ',
+					list => \@list
+				      );
+		      }
+		}
+		if($ihrzeichen eq "Eigenes") {
+			$ihrzeichen = do_read("Ihr Zeichen", $ihrzeichen_default);
+		}
 		if($ihrzeichen) {
 			$ihrzeichen_default = $ihrzeichen;
 			if($options{MeinZeichen}) {
@@ -583,7 +601,7 @@ sub read_file {
 sub phone_number {
 	my $nr = shift;
 	$nr = reverse $nr;
-	$nr =~ s#(\d{2})#$1,\\#g;
+	$nr =~ s#(\d{4})#$1,\\#g;
 	$nr = reverse $nr;
 	$nr =~ s#^\\,##g;
 	$nr =~ s#\\,$##g;
@@ -591,11 +609,26 @@ sub phone_number {
 }
 
 sub find_IhrZeichen {
-	while (my $file = <*.tex>) {
+	my $pwd = $ENV{PWD};
+	my @possible = ();
+	while (my $file = <$pwd/*.tex>) {
 		my $content = read_file_chomp($file);
-		if($content =~ m#^\s*\\IhrZeichen\{([^\}]+)\}\s*$#) {
-			return $1;
+		if($content =~ m#\\IhrZeichen\{([^\}]+)\}#) {
+			my $match = $1;
+			if(!grep($match eq $_, @possible)) {
+				push @possible, $1;
+			}
 		}
 	}
-	return '';
+	if(@possible) {
+		return \@possible;
+	} else {
+		return '';
+	}
 }
+
+sub uniq {
+    my %seen;
+    grep !$seen{$_}++, @_;
+}
+
