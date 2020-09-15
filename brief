@@ -103,6 +103,30 @@ EOF
 		$betreff = do_read("Betreff");
 	}
 
+	my $ihrzeichen = '';
+	my $meinzeichen = '';
+	my $ihrschreiben = '';
+
+	if($options{IhrZeichen}) {
+		$ihrzeichen = $options{IhrZeichen};
+	} else {
+		my $ihrzeichen_default = find_IhrZeichen();
+		$ihrzeichen = do_read("Ihr Zeichen", $ihrzeichen_default);
+		if($ihrzeichen) {
+			if($options{MeinZeichen}) {
+				$meinzeichen = $options{MeinZeichen};
+			} else {
+				$meinzeichen = do_read("Mein Zeichen", $ihrzeichen_default);
+			}
+
+			if($options{IhrSchreiben}) {
+				$ihrschreiben = $options{IhrSchreiben};
+			} else {
+				$ihrschreiben = do_read("Ihr Schreiben (Datum)");
+			}
+		}
+	}
+
 	my $dateiname = '';
 	my $j = 0;
 	while ($dateiname eq '') {
@@ -146,6 +170,9 @@ EOF
 	if($dateiname ne '.tex') {
 		create_letter(
 			betreff => $betreff,
+			ihrzeichen => $ihrzeichen,
+			ihrschreiben => $ihrschreiben,
+			meinzeichen => $meinzeichen,
 			dateiname => $dateiname,
 			empfaenger_daten => \%this_daten,
 			sender_daten => \%sender_daten,
@@ -266,8 +293,6 @@ sub create_letter {
 \\usepackage{fourier}
 \\usepackage{marvosym}
 
-\\IhrSchreiben{}
-\\MeinZeichen{}
 EOF
 	;
 
@@ -369,6 +394,19 @@ EOF
 		add_to_letter(\$letter, "RetourAdresse", $retour_adress);
 	}
 
+
+	if($par{ihrschreiben}) {
+		add_to_letter(\$letter, "IhrSchreiben", $par{ihrschreiben});
+	}
+
+	if($par{meinzeichen}) {
+		add_to_letter(\$letter, "MeinZeichen", $par{meinzeichen});
+	}
+
+	if($par{ihrzeichen}) {
+		add_to_letter(\$letter, "IhrZeichen", $par{ihrzeichen});
+	}
+
 	if($par{sender_name}) {
 		add_to_letter(\$letter, "Name", $par{sender_name});
 	}
@@ -387,12 +425,27 @@ EOF
 		$adress_zeile++;
 	}
 
-	$letter .= <<EOF
-\\trennlinien
-\\lochermarke
-\\faltmarken
-\\fenstermarken
 
+	my @whattoadd = ();
+	if($options{dontask}) {
+		push @whattoadd, qw/trennlinien lochermarke faltmarken fenstermarken/;
+	} else {
+		push @whattoadd, $d->checklist(
+			text => 'Was soll dem Brief hinzufuegen?',
+			list => [
+				trennlinien => [ "Trennlinien hinzufuegen" => 1 ],
+				lochermarke => [ "Lochermarken hinzufuegen" => 0 ],
+				faltmarken => [ "Faltmarken hinzufuegen" => 0 ],
+				fenstermarken => [ "Fenstermarken hinzufuegen" => 1 ]
+			]
+		);
+	}
+
+	foreach my $add (@whattoadd) {
+		$letter .= '\\'.$add."\n";
+	}
+
+	$letter .= <<EOF
 \\addtolength{\\topmargin}{0.95cm}
 
 \\begin{document}
@@ -454,6 +507,12 @@ sub analyze_args {
 			$options{Empfaenger} = $1;
 		} elsif(m#^--sender=(.*)$#i) {
 			$options{Sender} = $1;
+		} elsif(m#^--MeinZeichen=(.*)$#i) {
+			$options{MeinZeichen} = $1;
+		} elsif(m#^--IhrZeichen=(.*)$#i) {
+			$options{IhrZeichen} = $1;
+		} elsif(m#^--IhrSchreiben=(.*)$#i) {
+			$options{IhrSchreiben} = $1;
 		} elsif(m#^--betreff=(.*)$#i) {
 			$options{Betreff} = $1;
 		} elsif(m#^--noedit#i) {
@@ -477,6 +536,13 @@ sub analyze_args {
 
 sub read_file_chomp {
 	my $filename = shift;
+	my $content = read_file($filename);
+	chomp $content;
+	return $content;
+}
+
+sub read_file {
+	my $filename = shift;
 	if (-e $filename) {
 		my $content = '';
 		open my $fh, '<', $filename;
@@ -484,7 +550,6 @@ sub read_file_chomp {
 			$content .= $_;
 		}
 		close $fh;
-		chomp $content;
 		return $content;
 	} else {
 		error "Die Datei $filename existiert nicht";
@@ -500,4 +565,12 @@ sub phone_number {
 	return $nr;
 }
 
-
+sub find_IhrZeichen {
+	while (my $file = <*.tex>) {
+		my $content = read_file_chomp($file);
+		if($content =~ m#^\s*\\IhrZeichen\{([^\}]+)\}\s*$#) {
+			return $1;
+		}
+	}
+	return '';
+}
