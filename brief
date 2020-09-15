@@ -113,16 +113,23 @@ EOF
 		my $ihrzeichen_default = find_IhrZeichen();
 		$ihrzeichen = do_read("Ihr Zeichen", $ihrzeichen_default);
 		if($ihrzeichen) {
+			$ihrzeichen_default = $ihrzeichen;
 			if($options{MeinZeichen}) {
 				$meinzeichen = $options{MeinZeichen};
 			} else {
 				$meinzeichen = do_read("Mein Zeichen", $ihrzeichen_default);
+				if(!$meinzeichen) {
+					$meinzeichen = '---';
+				}
 			}
 
 			if($options{IhrSchreiben}) {
 				$ihrschreiben = $options{IhrSchreiben};
 			} else {
 				$ihrschreiben = do_read("Ihr Schreiben (Datum)");
+				if(!$ihrschreiben) {
+					$ihrschreiben = '---';
+				}
 			}
 		}
 	}
