@@ -6,12 +6,14 @@ use Data::Dumper;
 use Term::ANSIColor;
 use UI::Dialog;
 use File::Copy;
+
+my $name_and_version = "Briefersteller v. 4.03";
 my $d;
 
 BEGIN {
 	$d = new UI::Dialog(
 		backtitle => '',
-		title => 'Briefersteller',
+		title => $name_and_version,
 		height => 8,
 		width => 65,
 		listheight => 5,
@@ -69,7 +71,7 @@ main();
 
 sub main {
 	print <<EOF;
-Brief-Skript v. 4.01.
+$name_and_version
 
 Dieses Skript soll helfen, automatisiert Briefköpfe zu erstellen. Dazu müssen einige Fragen beantwortet werden.
 
@@ -368,6 +370,8 @@ sub add_to_letter {
 sub _help {
 	my $error = shift // 0;
 	print <<EOF;
+$name_and_version
+
 --help                                  Diese Hilfe
 --Empfaenger="Name"                     Empfängernamen
 --Sender="Name"                         Sendername
