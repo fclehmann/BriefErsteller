@@ -127,6 +127,13 @@ EOF
 		}
 	}
 
+	my $postvermerk = '';
+	if($options{Postvermerk}) {
+		$postvermerk = $options{Postvermerk};
+	} else {
+		$postvermerk = do_read("Postvermerk (z.B. Einschreiben, Drucksache usw.)");
+	}
+
 	my $dateiname = '';
 	my $j = 0;
 	while ($dateiname eq '') {
@@ -169,6 +176,7 @@ EOF
 
 	if($dateiname ne '.tex') {
 		create_letter(
+			postvermerk => $postvermerk,
 			betreff => $betreff,
 			ihrzeichen => $ihrzeichen,
 			ihrschreiben => $ihrschreiben,
@@ -394,6 +402,9 @@ EOF
 		add_to_letter(\$letter, "RetourAdresse", $retour_adress);
 	}
 
+	if($par{postvermerk}) {
+		add_to_letter(\$letter, "Postvermerk", $par{postvermerk});
+	}
 
 	if($par{ihrschreiben}) {
 		add_to_letter(\$letter, "IhrSchreiben", $par{ihrschreiben});
@@ -415,9 +426,11 @@ EOF
 		add_to_letter(\$letter, "Unterschrift", $par{sender_name});
 	}
 
+
 	if(exists($sender_daten{email})) {
 		add_to_letter(\$letter, "InternetZeileA", $sender_daten{email});
 	}
+
 
 	my $adress_zeile = 'A';
 	if(exists($sender_daten{telefon})) {
@@ -515,6 +528,8 @@ sub analyze_args {
 			$options{IhrSchreiben} = $1;
 		} elsif(m#^--betreff=(.*)$#i) {
 			$options{Betreff} = $1;
+		} elsif(m#^--postvermerk=(.*)$#i) {
+			$options{Postvermerk} = $1;
 		} elsif(m#^--noedit#i) {
 			$options{edit} = 0;
 		} elsif(m#^--edit#i) {
@@ -562,6 +577,8 @@ sub phone_number {
 	$nr = reverse $nr;
 	$nr =~ s#(\d{2})#$1,\\#g;
 	$nr = reverse $nr;
+	$nr =~ s#^\\,##g;
+	$nr =~ s#\\,$##g;
 	return $nr;
 }
 
