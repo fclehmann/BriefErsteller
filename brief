@@ -283,9 +283,7 @@ EOF
 \\begin{document}
 \\begin{g-brief}
 
-%
 % Hier kommt der eigentliche Brief hin!
-%
 
 \\end{g-brief}
 \\end{document}
