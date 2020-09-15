@@ -115,21 +115,19 @@ EOF
 			if(scalar @$ihrzeichen_default == 1) {
 				$ihrzeichen_default = $ihrzeichen_default->[0];
 			} else {
-				my @list = ();
-				my $k = 0;
+				my @list = ("Eigenes" => ["Eigenes" => 1]);
 				foreach my $zeichen (@$ihrzeichen_default) {
-					push @list, ($zeichen => [$zeichen => (($k == 0) ? 1 : 0)]);
-					$k++;
+					push @list, ($zeichen => [$zeichen => 0]);
 				}
-				$ihrzeichen = $d->radiolist(
+				$ihrzeichen_default = $d->radiolist(
 					text => 'Mögliche Auswahlen für "Ihr Zeichen": ',
 					list => \@list
 				      );
 		      }
 		}
-		if($ihrzeichen eq "Eigenes") {
-			$ihrzeichen = do_read("Ihr Zeichen", $ihrzeichen_default);
-		}
+
+		$ihrzeichen = do_read("Ihr Zeichen", $ihrzeichen_default);
+
 		if($ihrzeichen) {
 			$ihrzeichen_default = $ihrzeichen;
 			if($options{MeinZeichen}) {
