@@ -50,27 +50,29 @@ EOF
 	}
 
 	my $dateiname = '';
-	if($options{Dateiname}) {
-		$dateiname = $options{Dateiname};
-	} else {
-		while (!$dateiname) {
-			$dateiname = do_read("Dateiname (.tex wird automatisch hinzugefügt)");
-		}
-	}
-
-	$dateiname =~ s#\.tex$##g;
-	$dateiname .= '.tex';
-
-	if(-e $dateiname) {
-		if ($d->yesno(text => "'$dateiname' existiert bereits. Alte Datei verschieben?")) {
-			my $i = 1;
-			while (-e "$dateiname.$i") {
-				$i++;
-			}
-			move($dateiname, "$dateiname.$i");
-			$d->msgbox(text => "Die alte Datei '$dateiname' wurde nach '$dateiname.$i' verschoben");
+	while ($dateiname eq '') {
+		if($options{Dateiname}) {
+			$dateiname = $options{Dateiname};
 		} else {
-			$dateiname = '';
+			while (!$dateiname) {
+				$dateiname = do_read("Dateiname (.tex wird automatisch hinzugefügt)");
+			}
+		}
+
+		$dateiname =~ s#\.tex$##g;
+		$dateiname .= '.tex';
+
+		if(-e $dateiname) {
+			if ($d->yesno(text => "'$dateiname' existiert bereits. Alte Datei verschieben?")) {
+				my $i = 1;
+				while (-e "$dateiname.$i") {
+					$i++;
+				}
+				move($dateiname, "$dateiname.$i");
+				$d->msgbox(text => "Die alte Datei '$dateiname' wurde nach '$dateiname.$i' verschoben");
+			} else {
+				$dateiname = '';
+			}
 		}
 	}
 
