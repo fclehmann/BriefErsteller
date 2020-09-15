@@ -249,8 +249,8 @@ EOF
 
 	foreach my $anrede_gruesse (qw/andrede gruesse/) {
 		if($empfaenger_daten{$anrede_gruesse}) {
-			if($empfaenger_daten{$anrede_gruesse} !~ m#[\!]$#) {
-				$empfaenger_daten{$anrede_gruesse} =~ s#,+$##g;
+			if($empfaenger_daten{$anrede_gruesse} !~ m#!$#) {
+				$empfaenger_daten{$anrede_gruesse} =~ s#\s*,*$##g;
 				$empfaenger_daten{$anrede_gruesse} .= ",";
 			}
 		}
