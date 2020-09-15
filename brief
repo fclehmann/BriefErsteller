@@ -134,6 +134,15 @@ EOF
 		$j++;
 	}
 
+	my $tmp_file = '/tmp/letter_tmp_'.rand();
+	while (-e $tmp_file) {
+		$tmp_file = '/tmp/letter_tmp_'.rand();
+	}
+
+	system("$ENV{EDITOR} $tmp_file");
+	my $letter_main_text = read_file_chomp($tmp_file);
+	unlink $tmp_file;
+
 	if($dateiname ne '.tex') {
 		create_letter(
 			betreff => $betreff,
@@ -141,7 +150,8 @@ EOF
 			empfaenger_daten => \%this_daten,
 			sender_daten => \%sender_daten,
 			name => $name,
-			sender_name => $sender_name
+			sender_name => $sender_name,
+			letter_main_text => $letter_main_text
 		);
 
 		my $filename_without_tex = $dateiname;
@@ -241,6 +251,11 @@ sub create_letter {
 \\MeinZeichen{}
 EOF
 	;
+
+	my $letter_main_text = "% Hier kommt der eigentliche Brief hin";
+	if($par{letter_main_text}) {
+		$letter_main_text = $par{letter_main_text};
+	}
 
 	my %sender_daten = %{$par{sender_daten}};
 	my %empfaenger_daten = %{$par{empfaenger_daten}};
@@ -364,7 +379,7 @@ EOF
 \\begin{document}
 \\begin{g-brief}
 
-% Hier kommt der eigentliche Brief hin!
+$letter_main_text
 
 \\end{g-brief}
 \\end{document}
