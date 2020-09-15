@@ -9,9 +9,14 @@ use File::Copy;
 my $d;
 
 BEGIN {
-	$d = new UI::Dialog ( backtitle => '', title => 'Briefersteller',
-		height => 8, width => 65 , listheight => 5,
-		order => [ 'whiptail', 'xdialog', 'dialog', 'zenity', 'gdialog', 'ascii' ] );
+	$d = new UI::Dialog(
+		backtitle => '',
+		title => 'Briefersteller',
+		height => 8,
+		width => 65,
+		listheight => 5,
+		order => ['whiptail', 'xdialog', 'dialog', 'zenity', 'gdialog', 'ascii']
+	);
 }
 
 sub code ($) {
@@ -140,7 +145,18 @@ sub get_daten {
 	if($options{$title}) {
 		$name = $options{$title};
 	} else {
-		$name = do_read($title);
+		my $default_name = undef;
+		if($title eq "Sender") {
+			my $default_name_file = $ENV{"HOME"}.'/.defaultnamebrief';
+			if(-e $default_name_file) {
+				ok "Die Datei $default_name_file existiert. Sie wird genommen, um den Default-Namen des Senders zu bestimmen";
+				$default_name = read_file_chomp($default_name_file);
+				msg "Der Default-Sender-Name ist '$default_name'";
+			} else {
+				msg "Die Datei $default_name_file existiert nicht. Sie wird genommen, um den Default-Namen des Senders zu bestimmen";
+			}
+		}
+		$name = do_read($title, $default_name);
 	}
 
 	my %this_daten = ();
@@ -172,9 +188,10 @@ sub get_daten {
 
 sub do_read {
 	my $name = shift;
+	my $default = shift // '';
 	my $str = $d->inputbox(
 		text => "$name: ",
-		entry => '' 
+		entry => $default
 	);
 	if ($d->state() eq "OK") {
 		chomp $str;
@@ -377,5 +394,22 @@ sub analyze_args {
 			error "Unknown parameter $_";
 			_help(1);
 		}
+	}
+}
+
+sub read_file_chomp {
+	my $filename = shift;
+	if (-e $filename) {
+		my $content = '';
+		open my $fh, '<', $filename;
+		while (<$fh>) {
+			$content .= $_;
+		}
+		close $fh;
+		chomp $content;
+		return $content;
+	} else {
+		error "Die Datei $filename existiert nicht";
+		return '';
 	}
 }
