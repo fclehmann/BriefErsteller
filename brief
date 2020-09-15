@@ -5,6 +5,7 @@ use warnings;
 use Data::Dumper;
 use Term::ANSIColor;
 use UI::Dialog;
+use File::Copy;
 
 my $d = new UI::Dialog ( backtitle => '', title => 'Briefersteller',
 	height => 8, width => 65 , listheight => 5,
@@ -52,19 +53,41 @@ EOF
 	if($options{Dateiname}) {
 		$dateiname = $options{Dateiname};
 	} else {
-		$dateiname = do_read("Dateiname (.tex wird automatisch hinzugefügt)");
+		while (!$dateiname) {
+			$dateiname = do_read("Dateiname (.tex wird automatisch hinzugefügt)");
+		}
 	}
 
 	$dateiname =~ s#\.tex$##g;
 	$dateiname .= '.tex';
 
+	if(-e $dateiname) {
+		if ($d->yesno(text => "'$dateiname' existiert bereits. Ueberschreiben?")) {
+			my $i = 1;
+			while (-e "$dateiname.$i") {
+				$i++;
+			}
+			move($dateiname, "$dateiname.$i");
+			$d->msgbox(text => "Die alte Datei '$dateiname' wurde nach '$dateiname.$i' verschoben");
+		} else {
+			$dateiname = '';
+		}
+	}
+
 	if($dateiname ne '.tex') {
 		create_letter(betreff => $betreff, dateiname => $dateiname, empfaenger_daten => \%this_daten, sender_daten => \%sender_daten, name => $name, sender_name => $sender_name);
 		my $filename_without_tex = $dateiname;
 		$filename_without_tex =~ s#\.tex$##g;
-		print "\n\n".color("green underline")."latexmk -pdf $dateiname && evince $filename_without_tex.pdf".color("reset")."\n";
-	} else {
-		die color("red")."Bitte einen richtigen Dateinamen eingeben!".color("reset");
+		my $compile_and_run = "latexmk -pdf $dateiname && evince $filename_without_tex.pdf";
+		print "\n\n".color("green underline").$compile_and_run.color("reset")."\n";
+
+		if ($d->yesno( text => 'Datei in vim oeffnen?') ) {
+			system("vim $dateiname")
+		}
+
+		if ($d->yesno(text => 'Datei kompilieren und direkt oeffnen?')) {
+			system($compile_and_run);
+		}
 	}
 }
 
