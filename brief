@@ -62,7 +62,7 @@ EOF
 	$dateiname .= '.tex';
 
 	if(-e $dateiname) {
-		if ($d->yesno(text => "'$dateiname' existiert bereits. Ueberschreiben?")) {
+		if ($d->yesno(text => "'$dateiname' existiert bereits. Alte Datei verschieben?")) {
 			my $i = 1;
 			while (-e "$dateiname.$i") {
 				$i++;
