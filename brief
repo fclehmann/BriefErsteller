@@ -7,10 +7,12 @@ use Term::ANSIColor;
 use UI::Dialog;
 use File::Copy;
 
-my $name_and_version = "Briefersteller v. 4.03";
+my $name_and_version;
 my $d;
 
 BEGIN {
+	$name_and_version = "Briefersteller v. 4.06";
+
 	$d = new UI::Dialog(
 		backtitle => '',
 		title => $name_and_version,
@@ -73,9 +75,12 @@ sub main {
 	print <<EOF;
 $name_and_version
 
-Dieses Skript soll helfen, automatisiert Briefköpfe zu erstellen. Dazu müssen einige Fragen beantwortet werden.
+Dieses Skript soll helfen, automatisiert Briefköpfe zu erstellen.
 
 Einmal eingegebene Daten werden gespeichert und stehen bei späteren Aufrufen zur Verfügung.
+Die Daten werden in der Datei
+	$require_file
+gespeichert und sind menschenlesbar und direkt in dieser Datei editierbar.
 
 EOF
 
@@ -191,11 +196,14 @@ sub get_daten {
 sub do_read {
 	my $name = shift;
 	my $default = shift // '';
+	msg $name.($default ? ", default_entry: $default" : '');
 	my $str = $d->inputbox(
 		text => "$name: ",
 		entry => $default
 	);
+
 	if ($d->state() eq "OK") {
+		msg "-> $str";
 		chomp $str;
 		return $str;
 	} else {
@@ -241,8 +249,10 @@ EOF
 
 	foreach my $anrede_gruesse (qw/andrede gruesse/) {
 		if($empfaenger_daten{$anrede_gruesse}) {
-			$empfaenger_daten{$anrede_gruesse} =~ s#,$##g;
-			$empfaenger_daten{$anrede_gruesse} .= ",";
+			if($empfaenger_daten{$anrede_gruesse} !~ m#[\!]$#) {
+				$empfaenger_daten{$anrede_gruesse} =~ s#,+$##g;
+				$empfaenger_daten{$anrede_gruesse} .= ",";
+			}
 		}
 	}
 
