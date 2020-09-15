@@ -11,7 +11,7 @@ my $name_and_version;
 my $d;
 
 BEGIN {
-	$name_and_version = "Briefersteller v. 4.10";
+	$name_and_version = "Briefersteller v. 4.20";
 
 	$d = new UI::Dialog(
 		backtitle => '',
@@ -134,9 +134,9 @@ EOF
 		$j++;
 	}
 
-	my $tmp_file = '/tmp/letter_tmp_'.rand();
+	my $tmp_file = '/tmp/letter_tmp_'.rand().".tex";
 	while (-e $tmp_file) {
-		$tmp_file = '/tmp/letter_tmp_'.rand();
+		$tmp_file = '/tmp/letter_tmp_'.rand().".tex";
 	}
 
 	system("$ENV{EDITOR} $tmp_file");
@@ -158,11 +158,11 @@ EOF
 		$filename_without_tex =~ s#\.tex$##g;
 		my $compile_and_run = "latexmk -pdf $dateiname && xdg-open $filename_without_tex.pdf";
 
-		if ($options{edit} == 1 || (!defined($options{edit} && yesno("Datei in $ENV{EDITOR} oeffnen?")))) {
+		if ($options{edit} == 1 || (!$options{edit} && yesno("Datei in $ENV{EDITOR} oeffnen?"))) {
 			system("$ENV{EDITOR} $dateiname")
 		}
 
-		if ($options{compileandopen} == 1 || !(defined($options{compileandopen} && yesno('Datei kompilieren und direkt oeffnen?')))) {
+		if ($options{compileandopen} == 1 || !$options{compileandopen} && yesno('Datei kompilieren und direkt oeffnen?')) {
 			system($compile_and_run);
 		}
 
