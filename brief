@@ -16,7 +16,7 @@ BEGIN {
 	$d = new UI::Dialog(
 		backtitle => '',
 		title => $name_and_version,
-		height => 8,
+		height => 20,
 		width => 65,
 		listheight => 5,
 		order => ['whiptail', 'xdialog', 'dialog', 'zenity', 'gdialog', 'ascii']
@@ -87,7 +87,6 @@ Die Daten werden in der Datei
 gespeichert und sind menschenlesbar und direkt in dieser Datei editierbar.
 
 EOF
-
 	my ($name, %this_daten) = get_daten("Empfaenger");
 
 	if(-e $require_file) {
@@ -158,11 +157,19 @@ EOF
 		$filename_without_tex =~ s#\.tex$##g;
 		my $compile_and_run = "latexmk -pdf $dateiname && xdg-open $filename_without_tex.pdf";
 
-		if ($options{edit} == 1 || (!$options{edit} && yesno("Datei in $ENV{EDITOR} oeffnen?"))) {
+		my @whattodo = $d->checklist(
+			text => 'Was soll ich noch tun?',
+			list => [
+				$ENV{EDITOR}, [ "Ganzen Brief nochmal in $ENV{EDITOR} oeffnen", !!$options{edit} ],
+				'compile', [ 'Brief kompilieren und öffnen', !!$options{compileandopen} ]
+			]
+		);
+
+		if (grep($ENV{EDITOR} eq $_, @whattodo)) {
 			system("$ENV{EDITOR} $dateiname")
 		}
 
-		if ($options{compileandopen} == 1 || !$options{compileandopen} && yesno('Datei kompilieren und direkt oeffnen?')) {
+		if (grep('compile' eq $_, @whattodo)) {
 			system($compile_and_run);
 		}
 
@@ -364,7 +371,7 @@ EOF
 
 	my $adress_zeile = 'A';
 	if(exists($sender_daten{telefon})) {
-		add_to_letter(\$letter, "TelefonZeile$adress_zeile", "\\Telefon{$sender_daten{telefon}}");
+		add_to_letter(\$letter, "TelefonZeile$adress_zeile", "\\Telefon{".phone_number($sender_daten{telefon})."}");
 		$adress_zeile++;
 	}
 
@@ -469,3 +476,13 @@ sub read_file_chomp {
 		return '';
 	}
 }
+
+sub phone_number {
+	my $nr = shift;
+	$nr = reverse $nr;
+	$nr =~ s#(\d{2})#$1,\\#g;
+	$nr = reverse $nr;
+	return $nr;
+}
+
+
