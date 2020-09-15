@@ -50,8 +50,9 @@ EOF
 	}
 
 	my $dateiname = '';
+	my $j = 0;
 	while ($dateiname eq '') {
-		if($options{Dateiname}) {
+		if($j == 0 && $options{Dateiname}) {
 			$dateiname = $options{Dateiname};
 		} else {
 			while (!$dateiname) {
@@ -74,6 +75,7 @@ EOF
 				$dateiname = '';
 			}
 		}
+		$j++;
 	}
 
 	if($dateiname ne '.tex') {
