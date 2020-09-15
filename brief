@@ -456,7 +456,8 @@ EOF
 				trennlinien => [ "Trennlinien hinzufuegen" => 1 ],
 				lochermarke => [ "Lochermarken hinzufuegen" => 0 ],
 				faltmarken => [ "Faltmarken hinzufuegen" => 0 ],
-				fenstermarken => [ "Fenstermarken hinzufuegen" => 1 ]
+				fenstermarken => [ "Fenstermarken hinzufuegen" => 1 ],
+				unserzeichen => [ '"Mein Zeichen" wird zu "Unser Zeichen"' => 0 ]
 			]
 		);
 	}
