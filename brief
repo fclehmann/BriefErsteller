@@ -6,10 +6,48 @@ use Data::Dumper;
 use Term::ANSIColor;
 use UI::Dialog;
 use File::Copy;
+my $d;
 
-my $d = new UI::Dialog ( backtitle => '', title => 'Briefersteller',
-	height => 8, width => 65 , listheight => 5,
-	order => [ 'whiptail', 'xdialog', 'dialog', 'zenity', 'gdialog', 'ascii' ] );
+BEGIN {
+	$d = new UI::Dialog ( backtitle => '', title => 'Briefersteller',
+		height => 8, width => 65 , listheight => 5,
+		order => [ 'whiptail', 'xdialog', 'dialog', 'zenity', 'gdialog', 'ascii' ] );
+}
+
+sub code ($) {
+	my $var = shift;
+	print color("on_green black").$var.color("reset")."\n";
+}
+
+sub msg ($) {
+	my $var = shift;
+	print color("yellow").$var.color("reset")."\n";
+}
+
+sub error ($) {
+	my $var = shift;
+	print color("red").$var.color("reset")."\n";
+}
+
+sub ok ($) {
+	my $var = shift;
+	print color("green").$var.color("reset")."\n";
+}
+
+
+sub yesno ($) {
+	my $text = shift;
+	msg $text;
+	my $res = $d->yesno( text => $text);
+	msg "-> Antwort ".($res ? 'Ja' : 'Nein');
+	return $res;
+}
+
+sub msgbox ($) {
+	my $text = shift;
+	msg $text;
+	$d->msgbox(text => $text);
+}
 
 my $require_file = $ENV{"HOME"}.'/.briefkoepfe.pl';
 my %options = ();
@@ -64,13 +102,13 @@ EOF
 		$dateiname .= '.tex';
 
 		if(-e $dateiname) {
-			if ($d->yesno(text => "'$dateiname' existiert bereits. Alte Datei verschieben?")) {
+			if (yesno("'$dateiname' existiert bereits. Alte Datei verschieben?")) {
 				my $i = 1;
 				while (-e "$dateiname.$i") {
 					$i++;
 				}
 				move($dateiname, "$dateiname.$i");
-				$d->msgbox(text => "Die alte Datei '$dateiname' wurde nach '$dateiname.$i' verschoben");
+				msgbox "Die alte Datei '$dateiname' wurde nach '$dateiname.$i' verschoben";
 			} else {
 				$dateiname = '';
 			}
@@ -83,15 +121,16 @@ EOF
 		my $filename_without_tex = $dateiname;
 		$filename_without_tex =~ s#\.tex$##g;
 		my $compile_and_run = "latexmk -pdf $dateiname && xdg-open $filename_without_tex.pdf";
-		print "\n\n".color("green underline").$compile_and_run.color("reset")."\n";
 
-		if ($d->yesno( text => "Datei in $ENV{EDITOR} oeffnen?") ) {
+		if (yesno("Datei in $ENV{EDITOR} oeffnen?") ) {
 			system("$ENV{EDITOR} $dateiname")
 		}
 
-		if ($d->yesno(text => 'Datei kompilieren und direkt oeffnen?')) {
+		if (yesno('Datei kompilieren und direkt oeffnen?')) {
 			system($compile_and_run);
 		}
+
+		code $compile_and_run;
 	}
 }
 
@@ -115,7 +154,7 @@ sub get_daten {
 			$this_daten{$_} = $data if defined $data;
 		}
 
-		print color("yellow")."Die Daten waren dem Skript nicht bekannt. Sie werden nun in die ~/.briefkoepfe.pl geschrieben und stehen bei späteren Aufrufen zur Verfügung.".color("reset")."\n";
+		msg "Die Daten waren dem Skript nicht bekannt. Sie werden nun in die ~/.briefkoepfe.pl geschrieben und stehen bei späteren Aufrufen zur Verfügung.";
 
 		my $dumper = Dumper \%this_daten;
 
@@ -141,7 +180,8 @@ sub do_read {
 		chomp $str;
 		return $str;
 	} else {
-		die(color("red")."Error: ".$d->state().color("reset"));
+		error "Error: ".$d->state();
+		exit(1);
 	}
 }
 
@@ -190,7 +230,7 @@ EOF
 	if($empfaenger_adresse) {
 		add_to_letter(\$letter, "Adresse", $empfaenger_adresse);
 	} else {
-		print color("red")."Keine Empfaenger-Adresse eingegeben!".color("reset")."\n";
+		error "Keine Empfaenger-Adresse eingegeben!";
 	}
 
 	if($empfaenger_daten{gruesse}) {
@@ -294,7 +334,7 @@ EOF
 	print $fh $letter;
 	close $fh or die $!;
 
-	print color("green")."Brief erfolgreich erzeugt.".color("reset")."\n";
+	ok "Brief '".$par{dateiname}."' erfolgreich erzeugt.";
 }
 
 sub add_to_letter {
@@ -334,7 +374,7 @@ sub analyze_args {
 		} elsif(m#^--betreff=(.*)$#i) {
 			$options{Betreff} = $1;
 		} else {
-			print color("red")."Unknown parameter $_".color("reset")."\n";
+			error "Unknown parameter $_";
 			_help(1);
 		}
 	}
