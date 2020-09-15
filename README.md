@@ -16,7 +16,7 @@ zu packen, um es überall aufrufen zu können. Die .tex-Datei wird immer im aktu
 
 > sudo cpan -i UI::Dialog
 
-> sudo aptitude install whiptail
+> sudo aptitude install whiptail latexmk xdg-utils
 
 # Video
 

@@ -78,11 +78,11 @@ EOF
 		create_letter(betreff => $betreff, dateiname => $dateiname, empfaenger_daten => \%this_daten, sender_daten => \%sender_daten, name => $name, sender_name => $sender_name);
 		my $filename_without_tex = $dateiname;
 		$filename_without_tex =~ s#\.tex$##g;
-		my $compile_and_run = "latexmk -pdf $dateiname && evince $filename_without_tex.pdf";
+		my $compile_and_run = "latexmk -pdf $dateiname && xdg-open $filename_without_tex.pdf";
 		print "\n\n".color("green underline").$compile_and_run.color("reset")."\n";
 
-		if ($d->yesno( text => 'Datei in vim oeffnen?') ) {
-			system("vim $dateiname")
+		if ($d->yesno( text => "Datei in $ENV{EDITOR} oeffnen?") ) {
+			system("$ENV{EDITOR} $dateiname")
 		}
 
 		if ($d->yesno(text => 'Datei kompilieren und direkt oeffnen?')) {
