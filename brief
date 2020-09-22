@@ -188,9 +188,10 @@ EOF
 		$j++;
 	}
 
-	my $tmp_file = '/tmp/letter_tmp_'.rand().".tex";
+	mkdir "./.tmp" unless -d "./.tmp";;
+	my $tmp_file = './.tmp/letter_tmp_'.rand().".tex";
 	while (-e $tmp_file) {
-		$tmp_file = '/tmp/letter_tmp_'.rand().".tex";
+		$tmp_file = './.tmp/letter_tmp_'.rand().".tex";
 	}
 
 	system("$ENV{EDITOR} $tmp_file");
