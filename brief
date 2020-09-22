@@ -456,7 +456,7 @@ EOF
 
 
 	my $adress_zeile = 'A';
-	if(exists($sender_daten{telefon})) {
+	if(exists($sender_daten{telefon}) && length($sender_daten{telefon})) {
 		add_to_letter(\$letter, "TelefonZeile$adress_zeile", "\\Telefon{".phone_number($sender_daten{telefon})."}");
 		$adress_zeile++;
 	}
