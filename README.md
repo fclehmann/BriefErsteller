@@ -24,7 +24,7 @@ Die .tex-Datei wird immer im aktuellen PWD geschrieben.
 oder
 > sudo apt-get install whiptail latexmk xdg-utils
 
-Für LaTeX wird das Paktet dinbrief benötigt (https://ctan.org/pkg/dinbrief?lang=de).
+Für LaTeX wird das Paket g-brief benötigt (https://ctan.org/pkg/g-brief?lang=de).
 
 # Video
 
